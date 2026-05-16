@@ -7,9 +7,7 @@ SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schema.sql")
 def get_connection():
     """Создает и возвращает подключение к базе данных."""
     conn = sqlite3.connect(DB_PATH)
-    # Включаем поддержку внешних ключей (Foreign Keys) в SQLite
     conn.execute("PRAGMA foreign_keys = ON;")
-    # Данные из запросов будут возвращаться в виде удобных словарей, а не кортежей
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -36,7 +34,6 @@ def save_file_info(file_name: str, file_path: str) -> int:
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        # Используем INSERT OR IGNORE, чтобы не дублировать файлы при повторном запуске
         cursor.execute(
             "INSERT OR IGNORE INTO files (name, path) VALUES (?, ?)",
             (file_name, file_path)

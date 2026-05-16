@@ -4,10 +4,8 @@ import os
 
 root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Добавляем этот путь в список поиска модулей самым первым
 if root_path not in sys.path:
     sys.path.insert(0, root_path)
-# Импортируем функции из твоего db_manager
 from database.db_manager import save_file_info, save_entities, init_db
 
 def index_all_files(directory_path):
@@ -15,7 +13,6 @@ def index_all_files(directory_path):
     Проходит по всем .py файлам в указанной папке,
     извлекает структуру кода и сохраняет её в БД.
     """
-    # Убеждаемся, что база данных и таблицы созданы
     init_db()
 
     if not os.path.exists(directory_path):
@@ -70,11 +67,10 @@ def index_all_files(directory_path):
                     "docstring": ast.get_docstring(node)
                 })
         
-        # 4. Сохраняем все найденные функции и классы этого файла в БД одним махом
+        # 4. Сохраняем все найденные функции и классы этого файла в БД 
         if entities_to_save:
             save_entities(entities_to_save)
             print(f"успешно: {filename} ({len(entities_to_save)} объектов)")
 
 if __name__ == "__main__":
-    # Запуск индексации твоей папки с данными
     index_all_files("data")

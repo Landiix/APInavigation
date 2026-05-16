@@ -30,12 +30,11 @@ def list_files():
     return files
 
 @app.get("/api/search")
-def search(q: str = Query(None)):
+def search(q: str = Query(None), type: str = Query("None"), limit: int = Query(None), offset: int = Query(None)):
     """
     Поиск функций и классов. 
     Если запрос пустой или состоит из пробелов — возвращаем пустой список.
     """
-    # Проверка на пустой запрос (удаляем пробелы по краям)
     if not q or not q.strip():
         return []
 
@@ -50,29 +49,50 @@ def search(q: str = Query(None)):
     cursor.execute("""
         SELECT type, name, lineno_start, lineno_end, docstring 
         FROM code_entities 
-        WHERE name LIKE ? OR docstring LIKE ?
-    """, (search_pattern, search_pattern))
-    
+        WHERE (name LIKE ? OR docstring LIKE ?) AND type LIKE ?
+        LIMIT ? OFFSET ?
+                   
+    """, (search_pattern, search_pattern, type, limit, offset))
+    print(type, search_pattern)
     results = cursor.fetchall()
     conn.close()
     return results
 
+
 @app.get("/api/files/{filename}/structure")
-def get_structure(filename: str):
+def get_structure(filename: str, type: str = Query(None)):
     """Возвращает все функции и классы конкретного файла."""
     conn = get_connection()
     conn.row_factory = dict_factory
     cursor = conn.cursor()
     
-    # Соединяем таблицы, чтобы найти сущности по имени файла
+   
     cursor.execute("""
         SELECT ce.type, ce.name, ce.lineno_start, ce.lineno_end, ce.docstring
         FROM code_entities ce
         JOIN files f ON ce.file_id = f.id
-        WHERE f.name = ?
-    """, (filename,))
-    
+        WHERE f.name = ? AND ce.type LIKE ?
+    """, (filename,type))
+    print(type)
     results = cursor.fetchall()
     conn.close()
-    # Если ничего не нашли, возвращаем пустой список (как в задании)
     return results
+
+@app.get("/api/stats")
+def get_stats():
+    """Возвращает статистику по проиндексированным файлам."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT COUNT(*) FROM files")
+    total_files = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT type, COUNT(*) FROM code_entities GROUP BY type")
+    entity_counts = {row[0]: row[1] for row in cursor.fetchall()}
+    
+    conn.close()
+    
+    return {
+        "total_files": total_files,
+        "entity_counts": entity_counts
+    }
